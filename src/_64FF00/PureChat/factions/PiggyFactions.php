@@ -1,5 +1,11 @@
 <?php
-
+#      _       ____   __  __ 
+#     / \     / ___| |  \/  |
+#    / _ \   | |     | |\/| |
+#   / ___ \  | |___  | |  | |
+#  /_/   \_\  \____| |_|  |_|
+# The creator of this plugin was fernanACM.
+# https://github.com/fernanACM
 namespace _64FF00\PureChat\factions;
 
 use pocketmine\player\Player;

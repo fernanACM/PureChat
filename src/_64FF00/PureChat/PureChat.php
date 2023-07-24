@@ -2,9 +2,11 @@
 
 namespace _64FF00\PureChat;
 
+use _64FF00\PureChat\factions\BedrockClans;
+use _64FF00\PureChat\factions\FactionMaster;
 use _64FF00\PureChat\factions\FactionsInterface;
 use _64FF00\PureChat\factions\PiggyFactions;
-
+use _64FF00\PureChat\factions\SimpleFaction;
 use _64FF00\PurePerms\PPGroup;
 use _64FF00\PurePerms\PurePerms;
 use pocketmine\command\Command;
@@ -22,16 +24,18 @@ class PureChat extends PluginBase
     private ?FactionsInterface $factionsAPI;
     private PurePerms $purePerms;
 
-    public function onLoad(): void
-    {
+    # CheckConfig by fernanACM
+    private const CONFIG_VERSION = "3.0.0-ACM";
+
+    public function onLoad(): void{
         $this->saveDefaultConfig();
         $this->config = new Config($this->getDataFolder() . "config.yml", Config::YAML);
-        if (!$this->config->get("version")) {
+        /*if (!$this->config->get("version")) {
             $version = $this->getDescription()->getVersion();
             $this->config->set("version", $version);
             $this->fixOldConfig();
-        }
-
+        }*/
+        $this->loadCheck();
         $purePerms = $this->getServer()->getPluginManager()->getPlugin("PurePerms");
         assert($purePerms instanceof PurePerms);
         $this->purePerms = $purePerms;
@@ -48,6 +52,18 @@ class PureChat extends PluginBase
                                                              ");
         $this->loadFactionsPlugin();
         $this->getServer()->getPluginManager()->registerEvents(new PCListener($this), $this);
+    }
+
+    /**
+     * @return void
+     */
+    private function loadCheck(): void{
+        if((!$this->config->exists("config-version")) || ($this->config->get("config-version") != self::CONFIG_VERSION)){
+            rename($this->getDataFolder() . "config.yml", $this->getDataFolder() . "config_old.yml");
+            $this->saveResource("config.yml");
+            $this->getLogger()->critical("Your configuration file is outdated.");
+            $this->getLogger()->notice("Your old configuration has been saved as config_old.yml and a new configuration file has been generated. Please update accordingly.");
+        }
     }
 
     public function onCommand(CommandSender $sender, Command $command, string $label, array $args): bool
@@ -159,15 +175,14 @@ class PureChat extends PluginBase
         return true;
     }
 
-    private function fixOldConfig()
-    {
+    private function fixOldConfig(){
         $tempData = $this->config->getAll();
         $version = $this->getDescription()->getVersion();
         $tempData["version"] = $version;
-        if ($this->getConfig()->get("faction-support", true) === true) {            
+        /*if ($this->getConfig()->get("faction-support", true) === true) {            
            if (!isset($tempData["default-factions-plugin"]))
                $tempData["default-factions-plugin"] = null;
-        }
+        }*/
         if (isset($tempData["enable-multiworld-support"])) {
             $tempData["enable-multiworld-chat"] = $tempData["enable-multiworld-support"];
             unset($tempData["enable-multiworld-support"]);
@@ -248,18 +263,44 @@ class PureChat extends PluginBase
     private function loadFactionsPlugin(){
         $factionsPluginName = $this->config->get("default-factions-plugin");
 
-        if ($factionsPluginName === null) {
+        if($factionsPluginName === null){
             $this->getLogger()->notice("No valid factions plugin in default-factions-plugin node was found. Disabling factions plugin support.");
-        } else {
-            switch (strtolower($factionsPluginName)) {
+        }else{
+            switch(strtolower($factionsPluginName)){
                 case "piggyfactions":
-                    if ($this->getServer()->getPluginManager()->getPlugin("PiggyFactions") !== null) {
+                    if($this->getServer()->getPluginManager()->getPlugin("PiggyFactions") !== null){
                         $this->factionsAPI = new PiggyFactions();
                         $this->getLogger()->notice("PiggyFactions support enabled.");
                         break;
                     }
                     $this->getLogger()->notice("PiggyFactions was not found. Disabling factions plugin support.");
                     break;
+                case "simplefaction":
+                    if($this->getServer()->getPluginManager()->getPlugin("SimpleFaction") !== null){
+                        $this->factionsAPI = new SimpleFaction();
+                        $this->getLogger()->notice("SimpleFaction support enabled.");
+                        break;
+                    }
+                    $this->getLogger()->notice("SimpleFaction was not found. Disabling factions plugin support.");
+                break;
+
+                case "factionmaster":
+                    if($this->getServer()->getPluginManager()->getPlugin("FactionMaster") !== null){
+                        $this->factionsAPI = new FactionMaster();
+                        $this->getLogger()->notice("FactionMaster support enabled.");
+                        break;
+                    }
+                    $this->getLogger()->notice("FactionMaster was not found. Disabling factions plugin support.");
+                break;
+
+                case "bedrockclans":
+                    if($this->getServer()->getPluginManager()->getPlugin("BedrockClans") !== null){
+                        $this->factionsAPI = new BedrockClans();
+                        $this->getLogger()->notice("BedrockClans support enabled.");
+                        break;
+                    }
+                    $this->getLogger()->notice("BedrockClans was not found. Disabling factions plugin support.");
+                break;
                 default:
                     $this->getLogger()->notice("No valid factions plugin in default-factions-plugin node was found. Disabling factions plugin support.");
                     break;
